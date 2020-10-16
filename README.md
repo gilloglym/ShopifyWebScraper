@@ -16,7 +16,6 @@ Output Templates:
 
 --google-manufacturer: Outputs file to Google's Manufacturer Center Feed specification
 --base-feed: Outputs basic product feed that includes Shopify's MetaField data
---elliot-template: Outputs Shopify product data into an importable Elliot catalog CSV
 Return a list of Shopify collections:
 
 python shopify.py --list-collections [site's url]
@@ -32,10 +31,6 @@ python shopify.py --csv --base-feed [site's url]
 Set output file format to .tsv:
 
 python shopify.py --tsv --base-feed [site's url]
-
-Set output file format to Elliot's Product Import:
-
-python shopify.py --tsv --elliot-template [site's url]
 
 Example:
 

@@ -98,10 +98,7 @@ def extract_products_collection(url, col,template):
                         return i['src']
 
                 return ''
-            if template == ELLIOT_TEMPLATE_1:
-                yield {'product':product}
-            else :
-                for i, variant in enumerate(product['variants']):
+            for i, variant in enumerate(product['variants']):
                     price = variant['price']
                     option1_value = variant['option1'] or ''
                     option2_value = variant['option2'] or ''
@@ -140,7 +137,7 @@ def extract_products_collection(url, col,template):
 
 def extract_products(url, path, collections=None ,delimiter = "\t" , template = False):
     tsv_headers = get_headers(template)
-    with open(path, 'w') as f:
+    with open(path, 'w', newline='') as f:
         writer = csv.writer(f,delimiter=delimiter)
         # writer.writerow(tsv_headers)
         seen_variants = set()
@@ -187,16 +184,6 @@ def extract_products(url, path, collections=None ,delimiter = "\t" , template = 
 def get_headers(TEMPLATE, attribute_count = 3):
     if TEMPLATE == GOOGLE_TEMPLATE:
         tsv_headers = ['Code','Collection','Category','Name','Variant Name','Price','In Stock','URL','Image URL','Body','id','title','GTIN','brand','product_name','product_type','description','image_link','additional_image_link','product_page_url','release_date','disclosure_date','price']
-    elif TEMPLATE == ELLIOT_TEMPLATE or TEMPLATE == ELLIOT_TEMPLATE_1:
-        if attribute_count > 1 :
-            tsv_headers = ['Name', 'Description', 'SKU', 'Gender',] 
-            for i in range(1,attribute_count+1):
-                tsv_headers+= [' Attribute '+str(i), 'Attribute '+str(i)+' Value'] 
-            tsv_headers += ['Base Image 1 ', 'Base Image 2', 'Base Image 3', 'Base Image 4', 'Base Image 5', 'Base Price(USD)', 'Sale Price(USD)', 'Quantity', 'Unit of Weight', 'Weight', 'Unit of Dimensions', 'Height', 'Width', 'Length', 'SEO Title', 'SEO Description']
-        else:
-            tsv_headers = ['Name', 'Description', 'SKU', 'Gender', ' Attribute 1', 'Attribute 1 Value', 'Base Image 1 ', 'Base Image 2', 'Base Image 3', 'Base Image 4', 'Base Image 5', 'Base Price(USD)', 'Sale Price(USD)', 'Quantity', 'Unit of Weight', 'Weight', 'Unit of Dimensions', 'Height', 'Width', 'Length', 'SEO Title', 'SEO Description']
-        if TEMPLATE == ELLIOT_TEMPLATE_1:
-            tsv_headers += ['Vendor','Parent SKU']
     else:
         # TEMPLATE == BASE_TEMPLATE:
         tsv_headers = ['Code', 'Collection', 'Category','Name', 'Variant Name','Price', 'In Stock', 'URL', 'Image URL', 'Body']
@@ -206,116 +193,6 @@ def format_row_data(TEMPLATE ,product,images,title):
     if TEMPLATE == GOOGLE_TEMPLATE:
         #       'Code',         'Collection','Category',             'Name',            'Variant Name',         'Price',          'In Stock',        'URL',                 'Image URL',           'Body',          'id',          'title',         'GTIN',         'brand',            'product_name',  'product_type',           'description',       'image_link','additional_image_link','product_page_url','release_date','disclosure_date','price'
         return ([ product['sku'], str(title), product['product_type'], product['title'], product['option_value'], product['price'], product['stock'], product['product_url'], product['image_src'], product['body'], product['id'], product['title'], product['sku'], product['vendor'], product['title'], product['product_type'], product['body_html'], product['image_src'], ",".join(images), product['product_url'], product['created_at'][0:10], product['created_at'][0:10], product['price'] ],False)
-    elif TEMPLATE == ELLIOT_TEMPLATE:
-        attributes = [] 
-        variants = []
-        metafields = []
-        if 'variants' in product['product']:
-            variants = product['product']['variants']
-        if 'metafields' in product['product']:
-            try:
-                metafields = product['product']['metafields']
-            except Exception as e:
-                pass
-        _images = []
-        # assuming only 3 options
-        for i in range(1,4):
-            if len(product['product']['options']) > i-1 :
-                attributes.append(product['product']['options'][i-1]['name'])
-                if 'variant' in product and 'option'+str(i) in product['variant']:
-                    attributes.append(product['variant']['option'+str(i)])
-                else: 
-                    attributes.append("")
-            else:
-                attributes.append("")
-                attributes.append("")
-        for i in range(5):
-            if len(images)> i:
-                _images.append(images[i])
-            else:
-                _images.append("")
-
-        #  'Base Price(USD)', 'Sale Price(USD)', 'Quantity', 'Unit of Weight', 'Weight', 'Unit of Dimensions', 'Height', 'Width', 'Length', 'SEO Title', 'SEO Description']
-        products = []
-        for i in variants:
-            quantity = i['inventory_quantity'] if 'inventory_quantity' in i  else ''
-            weight = ''
-            unit_of_weight = ''
-            seo_title = ''
-            seo_desc = ''
-            if 'weight_unit' in i:
-                 unit_of_weight = i['weight_unit']
-                 weight = i['weight']
-            if 'grams' in i : 
-                unit_of_weight = 'grams'
-                weight = i['grams']
-            for meta in metafields:
-                if meta == 'metafields_global_title_tag':
-                    seo_title = metafields[meta]
-                if meta == 'metafields_global_description_tag':
-                    seo_desc = metafields[meta]
-                if 'name' in meta and meta['name'] == 'metafields_global_title_tag':
-                    if 'value' in meta:
-                        seo_title = meta['value']
-                    else:
-                        seo_title = str(meta)
-                if 'name' in meta and meta['name'] == 'metafields_global_description_tag':
-                    if 'value' in meta:
-                        seo_desc = meta['value']
-                    else:
-                        seo_desc = str(meta)
-            products.append([ product['row']['title'] , product['row']['body_html'] , product['row']['sku'] , ""  ,   ] + attributes + _images + [i['price'] , i['price'] , quantity , format_unit_weight(unit_of_weight) , weight , "IN" , "3" , "3" , "3" ,seo_title,seo_desc])
-        if len(products) == 0:
-            products.append([ product['row']['title'] , product['row']['body_html'] , product['row']['sku'] , ""  ,   ] + attributes + _images + ["" , "", "" , "" , "" , "IN" , "3" , "3" , "3" ,"",""])
-        return (products,True)
-    elif TEMPLATE == ELLIOT_TEMPLATE_1:
-        attributes = [] 
-        variants = []
-        metafields = []
-        if 'variants' in product['product']:
-            variants = product['product']['variants']
-        if 'metafields' in product['product']:
-            try:
-                metafields = product['product']['metafields']
-            except Exception as e:
-                pass
-        _images = []
-        # assuming only 3 options
-        products = []
-        # parent 
-        p = product['product']
-        vendor = p['vendor'] if 'vendor' in p else ''
-        base_images = list(map(lambda x: x['src'].split('?')[0] , p['images']))
-        if(len(base_images) < 5):
-            for i in range(5 - len(base_images)):
-                base_images += ['']
-        elif len(base_images) > 5:
-            base_images = base_images[0:5]
-        products.append([ p['title'] , p['body_html'] , p['sku'] if 'sku' in p else p['title']  ] + ['Unisex','','','','','',''] + base_images + get_product_row(p,metafields) + ['',''])
-        
-        sku = p['sku'] if 'sku' in p else p['title']
-        # variants
-        for i in variants:
-            attributes = []
-            base_images = ['','','','','']
-            if 'images' in i:
-                base_images = list(map(lambda x: x['src'].split('?')[0] , i['images']))[0:5]
-                if(len(base_images) < 5):
-                    for j in range(5 - len(base_images)):
-                        base_images += ['']
-            for j in range(1,4):
-                if len(product['product']['options']) > j-1 :
-                    attributes.append(product['product']['options'][j-1]['name'])
-                    if 'option'+str(j) in i:
-                        attributes.append(i['option'+str(j)])
-                    else: 
-                        attributes.append("")
-                else:
-                    attributes.append("")
-                    attributes.append("")
-            products.append([ "" , "" , i['sku'] if 'sku' in i else '' , "Unisex"  ,   ] + attributes + base_images + get_product_row(i,metafields) +[vendor,sku] ) 
-
-        return (products,True)
     else:
         return ([ product['sku'], str(title), product['product_type'], product['title'], product['option_value'], product['price'], product['stock'], product['product_url'], product['image_src'], product['body'] ] + [x for x in product['metafields']],False)
 def format_unit_weight(w):
