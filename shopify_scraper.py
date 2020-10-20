@@ -7,9 +7,6 @@ from urllib.error import HTTPError
 from optparse import OptionParser
 import argparse
 
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
-
-
 def get_page(url, page, collection_handle=None):
     full_url = url
     if collection_handle:
@@ -18,9 +15,6 @@ def get_page(url, page, collection_handle=None):
     req = urllib.request.Request(
         full_url + '?page={}'.format(page),
         data=None,
-        headers={
-            'User-Agent': USER_AGENT
-        }
     )
     while True:
         try:
@@ -42,9 +36,6 @@ def get_page_collections(url):
         req = urllib.request.Request(
             full_url + '?page={}'.format(page),
             data=None,
-            headers={
-                'User-Agent': USER_AGENT
-            }
         )
         while True:
             try:
@@ -183,7 +174,7 @@ def extract_products(url, path, collections=None ,delimiter = "\t" , template = 
             writer.writerow(row)
 def get_headers(TEMPLATE, attribute_count = 3):
     if TEMPLATE == GOOGLE_TEMPLATE:
-        tsv_headers = ['Code','Collection','Category','Name','Variant Name','Price','In Stock','URL','Image URL','Body','id','title','GTIN','brand','product_name','product_type','description','image_link','additional_image_link','product_page_url','release_date','disclosure_date','price']
+        tsv_headers = ['Code','Collection','Category','Name','Variant Name','Price','In Stock','URL','Image URL','Body','id','title','GTIN','brand','product_name','product_type','description','image_link','additional_image_link','product_page_url','release_date','disclosure_date','suggested_retail_price']
     else:
         # TEMPLATE == BASE_TEMPLATE:
         tsv_headers = ['Code', 'Collection', 'Category','Name', 'Variant Name','Price', 'In Stock', 'URL', 'Image URL', 'Body']
@@ -191,7 +182,7 @@ def get_headers(TEMPLATE, attribute_count = 3):
 
 def format_row_data(TEMPLATE ,product,images,title):
     if TEMPLATE == GOOGLE_TEMPLATE:
-        #       'Code',         'Collection','Category',             'Name',            'Variant Name',         'Price',          'In Stock',        'URL',                 'Image URL',           'Body',          'id',          'title',         'GTIN',         'brand',            'product_name',  'product_type',           'description',       'image_link','additional_image_link','product_page_url','release_date','disclosure_date','price'
+        #       'Code',         'Collection','Category',             'Name',            'Variant Name',         'Price',          'In Stock',        'URL',                 'Image URL',           'Body',          'id',          'title',         'GTIN',         'brand',            'product_name',  'product_type',           'description',       'image_link','additional_image_link','product_page_url','release_date','disclosure_date','suggested_retail_price'
         return ([ product['sku'], str(title), product['product_type'], product['title'], product['option_value'], product['price'], product['stock'], product['product_url'], product['image_src'], product['body'], product['id'], product['title'], product['sku'], product['vendor'], product['title'], product['product_type'], product['body_html'], product['image_src'], ",".join(images), product['product_url'], product['created_at'][0:10], product['created_at'][0:10], product['price'] ],False)
     else:
         return ([ product['sku'], str(title), product['product_type'], product['title'], product['option_value'], product['price'], product['stock'], product['product_url'], product['image_src'], product['body'] ] + [x for x in product['metafields']],False)
@@ -277,8 +268,6 @@ if __name__ == '__main__':
     parser.add_argument("--csv", dest="csv" , action="store_true" , help="Output format CSV ")
     parser.add_argument("--tsv", dest="tsv" , action="store_true" , help="Output format TSV" )
     parser.add_argument("--google-manufacturer" , action="store_true" , help="Output google-manufacturer template")
-    parser.add_argument("--elliot-template-1" , action="store_true", help="Output in Elliot's products old template")
-    parser.add_argument("--elliot-template" , action="store_true", help="Output in Elliot's products template")
     parser.add_argument("--base-feed" , action="store_true" , help="Output original Shopify template")
     # constants to avoid string literal comparison 
     BASE_TEMPLATE = 0
@@ -297,12 +286,8 @@ if __name__ == '__main__':
             if options.collections:
                 collections = options.collections.split(',')
             filename = 'products.tsv' if options.tsv else 'products.csv'
-            if(options.elliot_template):
-                extract_products(url,filename,collections,delimiter,ELLIOT_TEMPLATE_1)
-            elif options.google_manufacturer:
+            if options.google_manufacturer:
                 extract_products(url, filename, collections , delimiter , GOOGLE_TEMPLATE)
-            elif options.elliot_template_1:
-                extract_products(url, filename, collections , delimiter , ELLIOT_TEMPLATE)
             elif not options.base_feed:
                 extract_products(url, filename, collections , delimiter , GOOGLE_TEMPLATE)
             else:
